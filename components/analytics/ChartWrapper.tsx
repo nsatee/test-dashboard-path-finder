@@ -1,4 +1,4 @@
-import React, { ReactNode, Component } from 'react';
+import React, { ReactNode } from 'react';
 
 type ChartWrapperProps = {
   title: string;
@@ -40,11 +40,14 @@ export function ChartWrapper({
 type ErrorBoundaryProps = { children?: ReactNode };
 type ErrorBoundaryState = { hasError: boolean };
 
-export class ChartErrorBoundary extends Component<
+export class ChartErrorBoundary extends React.Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { hasError: false };
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError() {
     return { hasError: true };

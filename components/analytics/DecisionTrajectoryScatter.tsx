@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ScatterChart,
   Scatter,
@@ -27,10 +27,10 @@ const CustomTooltip = ({ active, payload }: any) => {
         <p className="font-bold text-card-foreground mb-1 text-sm">{data.title}</p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
             <p className="text-muted-foreground">Confidence:</p> 
-            <p className="text-right font-mono font-medium">{data.initialConfidence}%</p>
+            <p className="text-right font-mono font-medium">{data.originalConf}%</p>
             
             <p className="text-muted-foreground">Gut Feeling:</p> 
-            <p className="text-right font-mono font-medium">{data.gutFeeling}/10</p>
+            <p className="text-right font-mono font-medium">{data.originalGut}/10</p>
             
             <p className="text-muted-foreground">Outcome:</p> 
             <p className="text-right capitalize font-bold" style={{
@@ -46,12 +46,11 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 const QuadrantLabel = ({ x, y, text, align }: { x: string, y: string, text: string, align: 'start' | 'end' }) => (
     <div 
-        className="absolute text-xs font-bold text-foreground/40 uppercase tracking-wider pointer-events-none select-none z-10"
+        className="absolute text-[10px] font-bold text-foreground/30 uppercase tracking-widest pointer-events-none select-none z-10"
         style={{ 
             left: x, 
             top: y, 
             transform: align === 'end' ? 'translateX(-100%)' : 'none',
-            textShadow: '0 1px 2px rgba(255,255,255,0.8)'
         }}
     >
         {text}
@@ -66,6 +65,19 @@ export function DecisionTrajectoryScatter({ data }: Props) {
       default: return 'var(--color-muted-foreground)';
     }
   };
+
+  // Add jitter to prevent stacking
+  const jitteredData = useMemo(() => {
+      return data.map(d => ({
+          ...d,
+          // Store original for tooltip
+          originalGut: d.gutFeeling,
+          originalConf: d.initialConfidence,
+          // Add small random noise: +/- 0.3 for Gut (0-10 scale), +/- 2 for Conf (0-100 scale)
+          gutFeeling: Math.max(0, Math.min(10, d.gutFeeling + (Math.random() - 0.5) * 0.6)),
+          initialConfidence: Math.max(0, Math.min(100, d.initialConfidence + (Math.random() - 0.5) * 4))
+      }));
+  }, [data]);
 
   return (
     <ChartErrorBoundary>
@@ -85,11 +97,9 @@ export function DecisionTrajectoryScatter({ data }: Props) {
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.3} />
                 
-                {/* Background Zones */}
-                {/* Top Right: High Conf, High Gut (Green tint) */}
-                <ReferenceArea x1={5} x2={10} y1={50} y2={100} fill="var(--color-success)" fillOpacity={0.05} />
-                {/* Bottom Left: Low Conf, Low Gut (Red tint) */}
-                <ReferenceArea x1={0} x2={5} y1={0} y2={50} fill="var(--color-destructive)" fillOpacity={0.03} />
+                {/* Background Zones - Very faint */}
+                <ReferenceArea x1={5} x2={10} y1={50} y2={100} fill="var(--color-success)" fillOpacity={0.03} />
+                <ReferenceArea x1={0} x2={5} y1={0} y2={50} fill="var(--color-destructive)" fillOpacity={0.02} />
 
                 <XAxis 
                     type="number" 
@@ -97,12 +107,12 @@ export function DecisionTrajectoryScatter({ data }: Props) {
                     name="Gut Feeling" 
                     domain={[0, 10]} 
                     stroke="var(--color-muted-foreground)"
-                    fontSize={12}
+                    fontSize={10}
                     tickLine={false}
                     axisLine={{ stroke: 'var(--color-border)' }}
                     ticks={[0, 2.5, 5, 7.5, 10]}
                 >
-                     <Label value="Gut Feeling (Intuition)" offset={-10} position="insideBottom" style={{ fill: 'var(--color-muted-foreground)', fontSize: 11 }} />
+                     <Label value="Gut Feeling (Intuition)" offset={-10} position="insideBottom" style={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }} />
                 </XAxis>
                 <YAxis 
                     type="number" 
@@ -110,12 +120,12 @@ export function DecisionTrajectoryScatter({ data }: Props) {
                     name="Confidence" 
                     domain={[0, 100]} 
                     stroke="var(--color-muted-foreground)"
-                    fontSize={12}
+                    fontSize={10}
                     tickLine={false}
                     axisLine={{ stroke: 'var(--color-border)' }}
                     ticks={[0, 25, 50, 75, 100]}
                 >
-                    <Label value="Rational Confidence (%)" angle={-90} position="insideLeft" style={{ fill: 'var(--color-muted-foreground)', fontSize: 11 }} />
+                    <Label value="Rational Confidence (%)" angle={-90} position="insideLeft" style={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }} />
                 </YAxis>
 
                 {/* Center Axes */}
@@ -124,26 +134,19 @@ export function DecisionTrajectoryScatter({ data }: Props) {
 
                 <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
 
-                <Scatter name="Decisions" data={data}>
-                    {data.map((entry, index) => (
+                <Scatter name="Decisions" data={jitteredData}>
+                    {jitteredData.map((entry, index) => (
                     <Cell 
                         key={`cell-${index}`} 
                         fill={getColor(entry.outcome)} 
-                        stroke="rgba(255,255,255,0.8)" 
+                        stroke="rgba(255,255,255,0.5)" // Crisp white border for separation
                         strokeWidth={1} 
-                        r={entry.outcome === 'unclear' ? 4 : 6} // Smaller if unclear
+                        r={4} // Smaller, clearer dots
                     />
                     ))}
                 </Scatter>
                 </ScatterChart>
             </ResponsiveContainer>
-        </div>
-        
-        {/* Legend */}
-        <div className="flex gap-4 justify-center mt-2 text-xs font-medium text-muted-foreground bg-card/50 py-1 rounded-full border border-border/50 self-center px-4">
-            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--color-success)] shadow-[0_0_4px_var(--color-success)]"></span> Right Call</div>
-            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--color-destructive)] shadow-[0_0_4px_var(--color-destructive)]"></span> Wrong Call</div>
-            <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--color-muted-foreground)]"></span> Unclear</div>
         </div>
       </div>
     </ChartErrorBoundary>
