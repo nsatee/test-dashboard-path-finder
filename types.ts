@@ -1,13 +1,17 @@
+
 export type OutcomeType = 'right_call' | 'wrong_call' | 'unclear';
 
 export type Decision = {
   id: string;
   title: string;
-  date: string;
+  date: string; // Frame date
+  sealedDate: string | null;
+  retrospectiveDate: string | null;
   outcome: OutcomeType;
   initialConfidence: number; // 0-100
   finalConfidence: number; // 0-100
   stressLevel: number; // 0-10
+  gutFeeling: number; // 0-10
   tags: string[];
   status: 'framed' | 'sealed' | 'retrospected';
 };
@@ -36,8 +40,22 @@ export type FlowData = {
   links: { source: number; target: number; value: number }[];
 };
 
+export type SummaryStats = {
+  totalDecisions: number;
+  sealedCount: number;
+  sealRate: number;
+  retrospectCount: number;
+  completionRate: number;
+  avgDaysToSeal: number;
+  avgDaysToRetrospect: number;
+  mostCommonPath: string;
+  mostSuccessfulPath: { name: string; rate: number };
+  pathWithMostDecisions: { name: string; count: number };
+};
+
 export type PathFinderData = {
   decisions: Decision[];
   networkData: NetworkData;
   flowData: FlowData;
+  stats: SummaryStats;
 };

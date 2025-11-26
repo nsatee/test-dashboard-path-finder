@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { NetworkData, OutcomeType } from '../../types';
@@ -27,36 +28,52 @@ export function DecisionPathNetwork({ data }: Props) {
     const links = data.links.map(d => ({ ...d }));
 
     const simulation = d3.forceSimulation(nodes as any)
-      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(50))
-      .force("charge", d3.forceManyBody().strength(-100))
+      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(80))
+      .force("charge", d3.forceManyBody().strength(-200))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide().radius(15));
+      .force("collide", d3.forceCollide().radius(20));
 
+    // Links
     const link = svg.append("g")
       .attr("stroke", "var(--color-border)")
       .attr("stroke-opacity", 0.6)
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke-width", (d: any) => Math.sqrt(d.value));
+      .attr("stroke-width", (d: any) => Math.sqrt(d.value) * 1.5);
 
     const getColor = (outcome: OutcomeType) => {
       switch (outcome) {
         case 'right_call': return 'var(--color-success)';
         case 'wrong_call': return 'var(--color-destructive)';
-        default: return 'var(--color-muted-foreground)'; // Muted for unclear
+        default: return 'var(--color-muted-foreground)';
       }
     };
 
+    // Node Group
     const node = svg.append("g")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1.5)
-      .selectAll("circle")
+      .selectAll("g")
       .data(nodes)
-      .join("circle")
-      .attr("r", (d: any) => 5 + (d.val || 5))
-      .attr("fill", (d: any) => getColor(d.outcome))
+      .join("g")
       .call(drag(simulation) as any);
+
+    // Node Circle
+    node.append("circle")
+      .attr("r", (d: any) => 6 + (d.val || 5))
+      .attr("fill", (d: any) => getColor(d.outcome))
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2)
+      .style("cursor", "grab");
+
+    // Node Label
+    node.append("text")
+      .text((d: any) => d.label.length > 15 ? d.label.substring(0, 15) + '...' : d.label)
+      .attr("x", 12)
+      .attr("y", 4)
+      .attr("font-size", "10px")
+      .attr("fill", "var(--color-foreground)")
+      .attr("opacity", 0.8)
+      .style("pointer-events", "none");
 
     node.append("title")
       .text((d: any) => d.label);
@@ -68,9 +85,7 @@ export function DecisionPathNetwork({ data }: Props) {
         .attr("x2", (d: any) => d.target.x)
         .attr("y2", (d: any) => d.target.y);
 
-      node
-        .attr("cx", (d: any) => d.x)
-        .attr("cy", (d: any) => d.y);
+      node.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
     });
 
     function drag(simulation: any) {
@@ -104,8 +119,11 @@ export function DecisionPathNetwork({ data }: Props) {
 
   return (
     <ChartErrorBoundary>
-      <div className="w-full h-full min-h-[400px] overflow-hidden bg-[var(--color-muted)]/10 rounded-lg">
+      <div className="w-full h-full min-h-[400px] overflow-hidden bg-[var(--color-muted)]/10 rounded-lg border border-[var(--color-border)] relative">
         <svg ref={svgRef} className="w-full h-full block" />
+        <div className="absolute bottom-2 right-2 text-[10px] text-muted-foreground bg-card/80 p-1 rounded">
+           Drag nodes to explore
+        </div>
       </div>
     </ChartErrorBoundary>
   );

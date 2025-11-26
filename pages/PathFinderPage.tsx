@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useMemo } from 'react';
 import { getPathFinderData } from '../services/mockData';
-import { PathFinderData } from '../types';
+import { PathFinderData, Decision } from '../types';
 import { ChartWrapper } from '../components/analytics/ChartWrapper';
 import { DecisionPathTimeline } from '../components/analytics/DecisionPathTimeline';
 import { DecisionTrajectoryScatter } from '../components/analytics/DecisionTrajectoryScatter';
@@ -8,11 +9,18 @@ import { DecisionPathNetwork } from '../components/analytics/DecisionPathNetwork
 import { PathSuccessRateChart } from '../components/analytics/PathSuccessRateChart';
 import { DecisionFlowDiagram } from '../components/analytics/DecisionFlowDiagram';
 import { Skeleton } from '../components/ui/Skeleton';
-import { Download, RefreshCw, Calendar, Share2 } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
+import { PathFinderStatsCards } from '../components/analytics/PathFinderStatsCards';
+import { PathFinderFilters, FilterState } from '../components/analytics/PathFinderFilters';
 
 export function PathFinderPage() {
   const [data, setData] = useState<PathFinderData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterState>({
+    timeRange: 'all',
+    outcome: 'all',
+    tags: []
+  });
 
   const loadData = async () => {
     setLoading(true);
@@ -30,31 +38,55 @@ export function PathFinderPage() {
     loadData();
   }, []);
 
+  const availableTags = useMemo(() => {
+    if (!data) return [];
+    const tags = new Set<string>();
+    data.decisions.forEach(d => d.tags.forEach(t => tags.add(t)));
+    return Array.from(tags).sort();
+  }, [data]);
+
+  const filteredDecisions = useMemo(() => {
+    if (!data) return [];
+    
+    return data.decisions.filter(d => {
+      // Time Filter
+      if (filters.timeRange !== 'all') {
+        const days = parseInt(filters.timeRange.replace('d', ''));
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        if (new Date(d.date) < cutoff) return false;
+      }
+
+      // Outcome Filter
+      if (filters.outcome !== 'all' && d.outcome !== filters.outcome) return false;
+
+      // Tag Filter
+      if (filters.tags.length > 0) {
+        if (!d.tags.some(t => filters.tags.includes(t))) return false;
+      }
+
+      return true;
+    });
+  }, [data, filters]);
+
   if (loading || !data) {
     return (
-      <div className="p-8 space-y-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-center">
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="h-32 w-full" />)}
         </div>
+        <Skeleton className="h-16 w-full" />
         <Skeleton className="h-[400px] w-full" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-           <Skeleton className="h-[350px] w-full" />
-           <Skeleton className="h-[350px] w-full" />
-        </div>
       </div>
     );
   }
 
-  const totalDecisions = data.decisions.length;
-  const successRate = Math.round((data.decisions.filter(d => d.outcome === 'right_call').length / totalDecisions) * 100);
-  const avgStress = (data.decisions.reduce((acc, curr) => acc + curr.stressLevel, 0) / totalDecisions).toFixed(1);
-
   return (
-    <div className="min-h-screen bg-[var(--color-background)] p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-[var(--color-background)] p-4 md:p-8 space-y-8 animate-in fade-in duration-500 pb-20">
       
       {/* Header */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -63,26 +95,28 @@ export function PathFinderPage() {
             <p className="text-muted-foreground mt-1">Visualize your decision-making journeys and discover patterns.</p>
         </div>
         <div className="flex gap-3">
-             <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-[var(--color-muted)] transition-colors text-card-foreground">
-                <Calendar className="w-4 h-4" />
-                Last 90 Days
-            </button>
             <button 
                 onClick={loadData}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--color-primary)] text-[var(--color-primary-foreground)] rounded-lg hover:opacity-90 transition-opacity shadow-sm"
             >
                 <RefreshCw className="w-4 h-4" />
-                Refresh Data
+                Refresh
             </button>
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="max-w-7xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Decisions" value={totalDecisions} subtext="+12% from last period" />
-        <StatCard label="Success Rate" value={`${successRate}%`} subtext="Top 10% of users" indicator="success" />
-        <StatCard label="Avg. Stress Level" value={`${avgStress}/10`} subtext="Decreasing trend" indicator="warning" />
-        <StatCard label="Active Patterns" value="5" subtext="3 new detected" />
+      {/* Stats Cards - Always Global */}
+      <div className="max-w-7xl mx-auto">
+         <PathFinderStatsCards stats={data.stats} />
+      </div>
+
+      {/* Filters */}
+      <div className="max-w-7xl mx-auto sticky top-2 z-40 shadow-sm">
+         <PathFinderFilters 
+            activeFilters={filters} 
+            onFilterChange={setFilters} 
+            availableTags={availableTags} 
+         />
       </div>
 
       <div className="max-w-7xl mx-auto space-y-8">
@@ -91,11 +125,11 @@ export function PathFinderPage() {
         <section>
              <ChartWrapper 
                 title="Decision Path Timeline" 
-                description="Chronological view of decision confidence marked by final outcomes."
+                description={`Visualizing ${filteredDecisions.length} decisions over time. Markers show Frame (Circle), Seal (Square), and Retrospect (Diamond).`}
                 action={<button className="text-muted-foreground hover:text-card-foreground"><Download className="w-4 h-4" /></button>}
             >
                 <div className="h-[400px]">
-                    <DecisionPathTimeline data={data.decisions} />
+                    <DecisionPathTimeline data={filteredDecisions} />
                 </div>
             </ChartWrapper>
         </section>
@@ -103,20 +137,20 @@ export function PathFinderPage() {
         {/* Two Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <ChartWrapper 
-                title="Confidence Trajectory" 
-                description="Analysis of initial vs. post-mortem confidence (Calibration)."
+                title="Decision Trajectory" 
+                description="Analyze how confidence, stress, and gut feelings correlate with outcomes."
             >
-                <div className="h-[350px]">
-                    <DecisionTrajectoryScatter data={data.decisions} />
+                <div className="h-[400px]">
+                    <DecisionTrajectoryScatter data={filteredDecisions} />
                 </div>
             </ChartWrapper>
 
             <ChartWrapper 
-                title="Pattern Success Rates" 
-                description="Success rates categorized by decision tags."
+                title="Path Success Rates" 
+                description="Compare success rates across different dimensions."
             >
-                <div className="h-[350px]">
-                    <PathSuccessRateChart data={data.decisions} />
+                <div className="h-[400px]">
+                    <PathSuccessRateChart data={filteredDecisions} />
                 </div>
             </ChartWrapper>
         </div>
@@ -125,7 +159,7 @@ export function PathFinderPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
                  <ChartWrapper 
-                    title="Decision Network" 
+                    title="Path Network" 
                     description="Clustering decisions by shared context and tags to find hidden connections."
                 >
                     <div className="h-[450px]">
@@ -135,8 +169,8 @@ export function PathFinderPage() {
             </div>
             <div className="lg:col-span-1">
                  <ChartWrapper 
-                    title="Process Flow" 
-                    description="Attrition and outcome flow."
+                    title="Decision Flow" 
+                    description="Tracking the flow from Frame to Seal to Retrospect."
                 >
                     <div className="h-[450px]">
                         <DecisionFlowDiagram data={data.flowData} />
@@ -148,18 +182,4 @@ export function PathFinderPage() {
       </div>
     </div>
   );
-}
-
-function StatCard({ label, value, subtext, indicator }: { label: string, value: string | number, subtext: string, indicator?: 'success' | 'warning' }) {
-    const borderColor = indicator === 'success' ? 'border-[var(--color-success)]' : indicator === 'warning' ? 'border-[var(--color-warning)]' : 'border-border';
-    
-    return (
-        <div className={`bg-card p-6 rounded-lg border ${borderColor} shadow-sm`}>
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-card-foreground">{value}</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">{subtext}</p>
-        </div>
-    )
 }
