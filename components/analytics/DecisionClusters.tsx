@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Decision } from '../../types';
-import { Tag, TrendingUp, BarChart2 } from 'lucide-react';
+import { Tag, Zap, Activity } from 'lucide-react';
 import { ChartErrorBoundary } from './ChartWrapper';
 
 type Props = {
@@ -36,37 +36,54 @@ export function DecisionClusters({ data }: Props) {
     <ChartErrorBoundary>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-1">
         {clusters.map((cluster) => (
-            <div key={cluster.name} className="bg-card border border-border p-4 rounded-lg hover:border-[var(--color-primary)] transition-all cursor-default group">
-                <div className="flex justify-between items-start mb-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-muted)] text-card-foreground">
-                        <Tag size={12} />
-                        {cluster.name}
+            <div 
+                key={cluster.name} 
+                className="bg-card border border-border rounded-lg overflow-hidden group hover:shadow-lg transition-all duration-300 hover:border-[var(--color-primary)]/50 cursor-default"
+            >
+                {/* Header Strip */}
+                <div className="bg-[var(--color-muted)]/50 px-4 py-2 flex justify-between items-center border-b border-border/50 group-hover:bg-[var(--color-primary)]/10 transition-colors">
+                    <div className="flex items-center gap-2">
+                        <Tag size={14} className="text-muted-foreground group-hover:text-[var(--color-primary)] transition-colors" />
+                        <span className="text-sm font-semibold text-card-foreground">{cluster.name}</span>
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground bg-background/50 px-2 py-0.5 rounded">
+                        {cluster.count}
                     </span>
-                    <span className="text-xs text-muted-foreground">{cluster.count} decisions</span>
                 </div>
                 
-                <div className="space-y-3 mt-3">
+                {/* Body */}
+                <div className="p-4 space-y-4">
+                    {/* Metric 1 */}
                     <div>
-                        <div className="flex justify-between text-xs mb-1">
-                            <span className="text-muted-foreground flex items-center gap-1"><TrendingUp size={12}/> Success Rate</span>
-                            <span className={`font-semibold ${cluster.successRate >= 60 ? 'text-[var(--color-success-foreground)]' : 'text-[var(--color-destructive)]'}`}>{cluster.successRate}%</span>
+                        <div className="flex justify-between items-end mb-1">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Zap size={10} /> Success
+                            </span>
+                            <span className={`text-sm font-bold ${cluster.successRate >= 60 ? 'text-[var(--color-success-foreground)]' : 'text-[var(--color-destructive)]'}`}>
+                                {cluster.successRate}%
+                            </span>
                         </div>
-                        <div className="w-full bg-[var(--color-muted)] h-1.5 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-[var(--color-muted)] rounded-full overflow-hidden">
                             <div 
-                                className={`h-full ${cluster.successRate >= 60 ? 'bg-[var(--color-success)]' : 'bg-[var(--color-destructive)]'}`} 
+                                className={`h-full rounded-full ${cluster.successRate >= 60 ? 'bg-[var(--color-success)]' : 'bg-[var(--color-destructive)]'}`}
                                 style={{ width: `${cluster.successRate}%` }}
                             />
                         </div>
                     </div>
 
+                    {/* Metric 2 */}
                     <div>
-                        <div className="flex justify-between text-xs mb-1">
-                            <span className="text-muted-foreground flex items-center gap-1"><BarChart2 size={12}/> Avg Confidence</span>
-                            <span className="font-semibold">{cluster.avgConfidence}%</span>
+                        <div className="flex justify-between items-end mb-1">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Activity size={10} /> Confidence
+                            </span>
+                            <span className="text-sm font-bold text-card-foreground">
+                                {cluster.avgConfidence}%
+                            </span>
                         </div>
-                         <div className="w-full bg-[var(--color-muted)] h-1.5 rounded-full overflow-hidden">
+                         <div className="h-1.5 w-full bg-[var(--color-muted)] rounded-full overflow-hidden">
                             <div 
-                                className="bg-[var(--color-primary)] h-full opacity-70"
+                                className="h-full bg-[var(--color-primary)] opacity-70 rounded-full"
                                 style={{ width: `${cluster.avgConfidence}%` }}
                             />
                         </div>

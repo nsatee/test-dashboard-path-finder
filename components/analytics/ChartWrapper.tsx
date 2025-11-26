@@ -1,9 +1,9 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, Component } from 'react';
 
 type ChartWrapperProps = {
   title: string;
   description?: string;
-  children: ReactNode;
+  children?: ReactNode;
   action?: ReactNode;
 };
 
@@ -14,10 +14,13 @@ export function ChartWrapper({
   action
 }: ChartWrapperProps) {
   return (
-    <div className="bg-card border-border rounded-lg border p-6 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full">
-      <div className="mb-6 flex justify-between items-start">
+    <div className="group relative bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full overflow-hidden">
+      {/* Decorative top gradient line */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent opacity-0 group-hover:opacity-50 transition-opacity" />
+      
+      <div className="mb-6 flex justify-between items-start relative z-10">
         <div>
-          <h3 className="text-card-foreground mb-1 text-xl font-semibold tracking-tight">
+          <h3 className="text-card-foreground mb-1 text-xl font-bold tracking-tight">
             {title}
           </h3>
           {description && (
@@ -28,23 +31,20 @@ export function ChartWrapper({
         </div>
         {action && <div>{action}</div>}
       </div>
-      <div className="w-full flex-grow min-h-[300px]">{children}</div>
+      <div className="w-full flex-grow min-h-[300px] relative z-10">{children}</div>
     </div>
   );
 }
 
 // Error Boundary for Charts
-type ErrorBoundaryProps = { children: ReactNode };
+type ErrorBoundaryProps = { children?: ReactNode };
 type ErrorBoundaryState = { hasError: boolean };
 
-export class ChartErrorBoundary extends React.Component<
+export class ChartErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+  state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError() {
     return { hasError: true };
@@ -53,8 +53,8 @@ export class ChartErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 text-center h-full bg-[var(--color-muted)]/20 rounded-lg">
-          <div className="mb-3 text-4xl opacity-50">📊</div>
+        <div className="flex flex-col items-center justify-center py-12 text-center h-full bg-[var(--color-muted)]/20 rounded-lg border-2 border-dashed border-[var(--color-border)]">
+          <div className="mb-3 text-4xl opacity-50 grayscale">📊</div>
           <h3 className="text-muted-foreground mb-1 text-lg font-semibold">
             Visualization unavailable
           </h3>
