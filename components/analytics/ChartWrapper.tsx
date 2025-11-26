@@ -34,11 +34,14 @@ export function ChartWrapper({
 }
 
 // Error Boundary for Charts
+type ErrorBoundaryProps = { children: ReactNode };
+type ErrorBoundaryState = { hasError: boolean };
+
 export class ChartErrorBoundary extends React.Component<
-  { children: ReactNode },
-  { hasError: boolean }
+  ErrorBoundaryProps,
+  ErrorBoundaryState
 > {
-  constructor(props: { children: ReactNode }) {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }

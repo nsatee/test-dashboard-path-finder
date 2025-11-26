@@ -34,7 +34,7 @@ export function DecisionClusters({ data }: Props) {
 
   return (
     <ChartErrorBoundary>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-1 h-full overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-1">
         {clusters.map((cluster) => (
             <div key={cluster.name} className="bg-card border border-border p-4 rounded-lg hover:border-[var(--color-primary)] transition-all cursor-default group">
                 <div className="flex justify-between items-start mb-2">
@@ -45,7 +45,7 @@ export function DecisionClusters({ data }: Props) {
                     <span className="text-xs text-muted-foreground">{cluster.count} decisions</span>
                 </div>
                 
-                <div className="space-y-3 mt-4">
+                <div className="space-y-3 mt-3">
                     <div>
                         <div className="flex justify-between text-xs mb-1">
                             <span className="text-muted-foreground flex items-center gap-1"><TrendingUp size={12}/> Success Rate</span>
