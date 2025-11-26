@@ -1,0 +1,5 @@
+{
+  "name": "Retroscope Path Finder",
+  "description": "A decision journal analytics dashboard visualizing decision paths, trajectories, and network connections to help users analyze their decision-making quality.",
+  "requestFramePermissions": []
+}

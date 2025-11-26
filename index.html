@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retroscope Path Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        /* Primary Colors */
+        --color-primary: #6073F5;
+        --color-primary-foreground: #E2E9F6;
+
+        /* Status Colors */
+        --color-success: #C0E758;
+        --color-success-foreground: #334B0B;
+        --color-warning: #FFD46B;
+        --color-warning-foreground: #5A4207;
+        --color-destructive: #FC96A0;
+        --color-destructive-foreground: #440209;
+
+        /* Base Colors */
+        --color-background: #ffffff;
+        --color-foreground: #22282E;
+        --color-card: #fffefe;
+        --color-card-foreground: #22282E;
+        --color-muted: #eaede6;
+        --color-muted-foreground: #6b7280;
+        --color-border: #e5e7eb;
+      }
+
+      body {
+        background-color: var(--color-background);
+        color: var(--color-foreground);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      .text-card-foreground { color: var(--color-card-foreground); }
+      .text-muted-foreground { color: var(--color-muted-foreground); }
+      .bg-card { background-color: var(--color-card); }
+      .border-border { border-color: var(--color-border); }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
+    "d3": "https://aistudiocdn.com/d3@^7.9.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
