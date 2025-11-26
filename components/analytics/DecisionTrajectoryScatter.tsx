@@ -1,152 +1,126 @@
 import React, { useMemo } from 'react';
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  ReferenceLine,
-  ReferenceArea,
-  Label
-} from 'recharts';
 import { Decision } from '../../types';
 import { ChartErrorBoundary } from './ChartWrapper';
+import { BrainCircuit, Lightbulb, Zap, HelpCircle } from 'lucide-react';
 
 type Props = {
   data: Decision[];
 };
 
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-card/95 backdrop-blur border border-border p-3 rounded-lg shadow-xl text-xs z-50">
-        <p className="font-bold text-card-foreground mb-1 text-sm">{data.title}</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
-            <p className="text-muted-foreground">Confidence:</p> 
-            <p className="text-right font-mono font-medium">{data.originalConf}%</p>
-            
-            <p className="text-muted-foreground">Gut Feeling:</p> 
-            <p className="text-right font-mono font-medium">{data.originalGut}/10</p>
-            
-            <p className="text-muted-foreground">Outcome:</p> 
-            <p className="text-right capitalize font-bold" style={{
-                color: data.outcome === 'right_call' ? 'var(--color-success-foreground)' : 
-                       data.outcome === 'wrong_call' ? 'var(--color-destructive)' : 'var(--color-muted-foreground)'
-            }}>{data.outcome.replace('_', ' ')}</p>
-        </div>
-      </div>
-    );
-  }
-  return null;
+type QuadrantStats = {
+  id: string;
+  label: string;
+  subLabel: string;
+  icon: React.ElementType;
+  total: number;
+  wins: number;
+  winRate: number;
+  color: string;
+  bg: string;
 };
 
-const QuadrantLabel = ({ x, y, text, align }: { x: string, y: string, text: string, align: 'start' | 'end' }) => (
-    <div 
-        className="absolute text-[10px] font-bold text-foreground/30 uppercase tracking-widest pointer-events-none select-none z-10"
-        style={{ 
-            left: x, 
-            top: y, 
-            transform: align === 'end' ? 'translateX(-100%)' : 'none',
-        }}
-    >
-        {text}
-    </div>
-);
-
 export function DecisionTrajectoryScatter({ data }: Props) {
-  const getColor = (outcome: string) => {
-    switch (outcome) {
-      case 'right_call': return 'var(--color-success)';
-      case 'wrong_call': return 'var(--color-destructive)';
-      default: return 'var(--color-muted-foreground)';
-    }
-  };
+  const quadrants = useMemo(() => {
+    // Buckets
+    const q: Record<string, QuadrantStats> = {
+      full: { id: 'full', label: 'Full Conviction', subLabel: 'Head & Heart Agree', icon: Zap, total: 0, wins: 0, winRate: 0, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+      data: { id: 'data', label: 'Data Driven', subLabel: 'High Logic, Low Gut', icon: BrainCircuit, total: 0, wins: 0, winRate: 0, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+      intuition: { id: 'intuition', label: 'Pure Intuition', subLabel: 'High Gut, Low Logic', icon: Lightbulb, total: 0, wins: 0, winRate: 0, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+      gamble: { id: 'gamble', label: 'Wild Guess', subLabel: 'Low Logic, Low Gut', icon: HelpCircle, total: 0, wins: 0, winRate: 0, color: 'text-slate-500', bg: 'bg-slate-500/10' },
+    };
 
-  // Add jitter to prevent stacking
-  const jitteredData = useMemo(() => {
-      return data.map(d => ({
-          ...d,
-          // Store original for tooltip
-          originalGut: d.gutFeeling,
-          originalConf: d.initialConfidence,
-          // Add small random noise: +/- 0.3 for Gut (0-10 scale), +/- 2 for Conf (0-100 scale)
-          gutFeeling: Math.max(0, Math.min(10, d.gutFeeling + (Math.random() - 0.5) * 0.6)),
-          initialConfidence: Math.max(0, Math.min(100, d.initialConfidence + (Math.random() - 0.5) * 4))
-      }));
+    data.forEach(d => {
+      const highLogic = d.initialConfidence >= 65; // Threshold for logic
+      const highGut = d.gutFeeling >= 6; // Threshold for gut (0-10)
+
+      let key = '';
+      if (highLogic && highGut) key = 'full';
+      else if (highLogic && !highGut) key = 'data';
+      else if (!highLogic && highGut) key = 'intuition';
+      else key = 'gamble';
+
+      q[key].total++;
+      if (d.outcome === 'right_call') q[key].wins++;
+    });
+
+    // Calculate rates
+    Object.values(q).forEach(bucket => {
+      bucket.winRate = bucket.total > 0 ? Math.round((bucket.wins / bucket.total) * 100) : 0;
+    });
+
+    return q;
   }, [data]);
+
+  const QuadrantCard = ({ stats }: { stats: QuadrantStats }) => (
+    <div className={`relative flex flex-col justify-between p-4 rounded-xl border ${stats.total === 0 ? 'opacity-50 border-dashed border-border' : 'border-border/60'} ${stats.bg} transition-all hover:scale-[1.02] hover:shadow-md h-full`}>
+       
+       {/* Header */}
+       <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2">
+             <div className={`p-1.5 rounded-md bg-card/60 backdrop-blur-sm ${stats.color}`}>
+                <stats.icon size={14} />
+             </div>
+             <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-card-foreground">{stats.label}</h4>
+                <p className="text-[10px] text-muted-foreground">{stats.subLabel}</p>
+             </div>
+          </div>
+       </div>
+
+       {/* Stats */}
+       <div className="flex items-end justify-between mt-2">
+          <div>
+              <div className="flex items-baseline gap-1">
+                 <span className={`text-2xl font-black ${stats.winRate >= 60 ? 'text-[var(--color-success-foreground)]' : stats.winRate <= 40 && stats.total > 0 ? 'text-[var(--color-destructive)]' : 'text-card-foreground'}`}>
+                    {stats.total > 0 ? `${stats.winRate}%` : '-'}
+                 </span>
+                 <span className="text-[10px] font-bold text-muted-foreground uppercase">Win Rate</span>
+              </div>
+          </div>
+          <div className="text-right">
+             <span className="text-xs font-mono font-medium text-muted-foreground bg-card/50 px-1.5 py-0.5 rounded border border-black/5">
+                {stats.total} Decisions
+             </span>
+          </div>
+       </div>
+
+       {/* Insight Badge (Conditional) */}
+       {stats.total > 3 && (
+           <div className="mt-3 pt-2 border-t border-black/5 text-[10px] font-medium opacity-80">
+               {stats.winRate >= 75 ? (
+                   <span className="text-[var(--color-success-foreground)] flex items-center gap-1">✨ Your superpower</span>
+               ) : stats.winRate <= 40 ? (
+                   <span className="text-[var(--color-destructive)] flex items-center gap-1">⚠️ Avoid this zone</span>
+               ) : (
+                   <span className="text-muted-foreground">Neutral zone</span>
+               )}
+           </div>
+       )}
+    </div>
+  );
 
   return (
     <ChartErrorBoundary>
-      <div className="h-full flex flex-col relative">
-        <div className="mb-2 px-2 text-sm text-muted-foreground flex justify-between">
-            <span>Correlation Analysis: <strong>Intuition vs. Analysis</strong></span>
+      <div className="h-full flex flex-col">
+        {/* The Matrix Layout */}
+        <div className="flex-grow grid grid-cols-2 grid-rows-2 gap-3 p-1">
+            {/* Top Left: Data Driven (High Logic, Low Gut) */}
+            <QuadrantCard stats={quadrants.data} />
+            
+            {/* Top Right: Full Conviction (High Logic, High Gut) */}
+            <QuadrantCard stats={quadrants.full} />
+            
+            {/* Bottom Left: Gamble (Low Logic, Low Gut) */}
+            <QuadrantCard stats={quadrants.gamble} />
+
+            {/* Bottom Right: Intuition (Low Logic, High Gut) */}
+            <QuadrantCard stats={quadrants.intuition} />
         </div>
 
-        {/* Quadrant Labels Overlay */}
-        <QuadrantLabel x="94%" y="6%" text="High Conviction" align="end" />
-        <QuadrantLabel x="6%" y="6%" text="Data Driven" align="start" />
-        <QuadrantLabel x="94%" y="88%" text="Pure Intuition" align="end" />
-        <QuadrantLabel x="6%" y="88%" text="Uncertain" align="start" />
-
-        <div className="flex-grow min-h-0 relative">
-            <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.3} />
-                
-                {/* Background Zones - Very faint */}
-                <ReferenceArea x1={5} x2={10} y1={50} y2={100} fill="var(--color-success)" fillOpacity={0.03} />
-                <ReferenceArea x1={0} x2={5} y1={0} y2={50} fill="var(--color-destructive)" fillOpacity={0.02} />
-
-                <XAxis 
-                    type="number" 
-                    dataKey="gutFeeling" 
-                    name="Gut Feeling" 
-                    domain={[0, 10]} 
-                    stroke="var(--color-muted-foreground)"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={{ stroke: 'var(--color-border)' }}
-                    ticks={[0, 2.5, 5, 7.5, 10]}
-                >
-                     <Label value="Gut Feeling (Intuition)" offset={-10} position="insideBottom" style={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }} />
-                </XAxis>
-                <YAxis 
-                    type="number" 
-                    dataKey="initialConfidence" 
-                    name="Confidence" 
-                    domain={[0, 100]} 
-                    stroke="var(--color-muted-foreground)"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={{ stroke: 'var(--color-border)' }}
-                    ticks={[0, 25, 50, 75, 100]}
-                >
-                    <Label value="Rational Confidence (%)" angle={-90} position="insideLeft" style={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }} />
-                </YAxis>
-
-                {/* Center Axes */}
-                <ReferenceLine x={5} stroke="var(--color-foreground)" strokeOpacity={0.2} strokeWidth={1} strokeDasharray="4 4" />
-                <ReferenceLine y={50} stroke="var(--color-foreground)" strokeOpacity={0.2} strokeWidth={1} strokeDasharray="4 4" />
-
-                <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-
-                <Scatter name="Decisions" data={jitteredData}>
-                    {jitteredData.map((entry, index) => (
-                    <Cell 
-                        key={`cell-${index}`} 
-                        fill={getColor(entry.outcome)} 
-                        stroke="rgba(255,255,255,0.5)" // Crisp white border for separation
-                        strokeWidth={1} 
-                        r={4} // Smaller, clearer dots
-                    />
-                    ))}
-                </Scatter>
-                </ScatterChart>
-            </ResponsiveContainer>
+        {/* Axis Labels (Subtle) */}
+        <div className="flex justify-between px-2 mt-1 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+            <span>← Low Intuition</span>
+            <span>High Intuition →</span>
         </div>
       </div>
     </ChartErrorBoundary>
